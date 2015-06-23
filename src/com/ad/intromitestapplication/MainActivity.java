@@ -4,7 +4,6 @@ package com.ad.intromitestapplication;
 
 
 import java.util.ArrayList;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
@@ -15,30 +14,29 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.support.v4.content.LocalBroadcastManager;
 import com.ad.intromi.*;
+
 
 
 public class MainActivity extends ListActivity {
 
-    /**request the user to enable bluetooth**/
+	/**request the user to enable bluetooth **/
 	private final int REQUEST_ENABLE_BT_DISCOVERY = 1;
 	/**flag to indicate GUI  if scanning or not**/
 	public boolean mScanning;
 	/**preparing the log to be more clear**/
 	protected static final String TAG = "MainActivity";
+	/**enabled/disabled log*/
 	protected static final Boolean D = true;
-
 	public   BluetoothDevice  	 device ; 
-     /**initiate IntroMi Framework**/
-		
-	ServiceManager  m;
-	
+	/**initiate IntroMi Framework**/
+	ServiceManager mService;;
 	boolean mBound = false;
 	/** application context**/
 	private static Context mContext;
@@ -49,6 +47,7 @@ public class MainActivity extends ListActivity {
 	private Menu  currentMenu;
 	/**the name to register that represent this device**/
 	String nameToRegister;
+
 	@Override
 	protected void onStart() {
 		super.onStart();
@@ -60,7 +59,8 @@ public class MainActivity extends ListActivity {
 		super.onStop();
 
 		//To stop the service when application is stopped		
-				m.stop();
+		mService.stop();	
+
 
 	}
 
@@ -68,7 +68,8 @@ public class MainActivity extends ListActivity {
 	protected void onDestroy() {
 		super.onDestroy();
 		//To stop the service when application is destroyed.		
-		m.stop();
+		mService.stop();
+
 	}
 
 	@Override
@@ -80,14 +81,14 @@ public class MainActivity extends ListActivity {
 		mContext = getApplicationContext();
 		mScanning = false;
 
-        //register local broadcasts 
+		//register local broadcasts 
 		LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter(ServiceManager.ERRORS));
 		LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter(ServiceManager.MESSAGE));
 		LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver, new IntentFilter(ServiceManager.BT_DISCOVERY_FINISHED));
-		
 
-		m = ServiceManager.getInstance(mContext);
-		m.setLog(true);
+		mService = ServiceManager.getInstance(mContext);
+		//Set log yes/no for debugging. Default is no
+		mService.setLog(true);
 
 	}
 
@@ -104,7 +105,6 @@ public class MainActivity extends ListActivity {
 
 			if (ServiceManager.MESSAGE.equals(intent.getAction())){
 				Profile p = new Profile();
-//				intent.getParcelableExtra("Profile");
 				Bundle data = new Bundle();
 				data = intent.getExtras();
 				p = data.getParcelable("Profile");
@@ -113,7 +113,6 @@ public class MainActivity extends ListActivity {
 				runOnUiThread(new Runnable() {
 					@Override
 					public void run() {
-
 						adapter.notifyDataSetChanged();
 					}
 				});
@@ -122,11 +121,12 @@ public class MainActivity extends ListActivity {
 			}
 			else 
 				if (ServiceManager.BT_DISCOVERY_FINISHED.equals(intent.getAction())){
-					
+
 					currentMenu.findItem(R.id.scanning_indicator).setVisible(false); 
 					currentMenu.findItem(R.id.scanning_stop).setVisible(false);
 					currentMenu.findItem(R.id.scanning_start).setVisible(true);
-					m.stop();
+					mService.stop();
+
 
 
 					mScanning = false;
@@ -135,24 +135,24 @@ public class MainActivity extends ListActivity {
 
 				else 
 					if(ServiceManager.ERRORS.equals(intent.getAction()))
-				{
-					switch (intent.getIntExtra("Error", -1)) {
-					case Errors.ERR_BT_IS_NOT_DISCOVERABLE:
 					{
-						Log.v("BT is not discoverable", null);
-						break;
-					}
-					case Errors.ERR_BTV2_IS_NOT_SUPPORTED:
-					{
-						Log.v("BT is not supported", null);
-						finish();
-						break;
-					}
+						switch (intent.getIntExtra("Error", -1)) {
+						case Errors.ERR_BT_IS_NOT_DISCOVERABLE:
+						{
+							Log.v("BT is not discoverable", null);
+							break;
+						}
+						case Errors.ERR_BTV2_IS_NOT_SUPPORTED:
+						{
+							Log.v("BT is not supported", null);
+							finish();
+							break;
+						}
 
 
-					}
+						}
 
-				}
+					}
 		}
 
 	};    
@@ -191,22 +191,23 @@ public class MainActivity extends ListActivity {
 			/**some tests to make sure BT  is supported and discoverable*/
 			/************************************************************/
 			if (isBtSupported()){
-			   BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();			
-			   mBluetoothAdapter.enable();			
-			  if (isBtDiscoverable()) {
-			     mScanning = true;
-			     m.startManualScan();
-			  }else 
-			  {
-				  Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-				    intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
-				    startActivityForResult(intent,REQUEST_ENABLE_BT_DISCOVERY); 
-			  }
+				BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();			
+				mBluetoothAdapter.enable();			
+				if (isBtDiscoverable()) {
+					mScanning = true;
+					mService.startManualScan();
+
+				}else 
+				{
+					Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+					intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
+					startActivityForResult(intent,REQUEST_ENABLE_BT_DISCOVERY); 
+				}
 			}
 			break;
 		case R.id.scanning_stop:
 			mScanning = false;
-			m.stop();
+			mService.stop();
 			mScanning = false;
 			break;
 		case R.id.register:
@@ -225,7 +226,7 @@ public class MainActivity extends ListActivity {
 					nameToRegister = name.getText().toString();
 					System.out.println(nameToRegister);
 					Register register = Register.getInstance();
-					register.doRegistration(getApplicationContext(), "ThisIsmiID",nameToRegister);
+					register.doRegistration(getApplicationContext(),"testSdk",nameToRegister);
 				}
 			})
 			.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -243,47 +244,38 @@ public class MainActivity extends ListActivity {
 
 
 
-	
-	
-private boolean isBtSupported() {
-	
-	BluetoothAdapter mBtAdapter = BluetoothAdapter.getDefaultAdapter();
-	/*
-	 * check if  bluetooth is supported on this device. 
-	 */
-	
-	if (mBtAdapter == null) {
-	    // Device does not support Bluetooth
-		System.out.println("BT is not supported on this device");
-		 return false;
-	}
-	
-	return true;		
-}
-	
 
-private boolean isBtDiscoverable() {
-	
-	BluetoothAdapter mBtAdapter = BluetoothAdapter.getDefaultAdapter();
-	if(mBtAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
-    
-     return true;
-	
-}
-	return false;
-	
-}
 
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if(requestCode==REQUEST_ENABLE_BT_DISCOVERY && resultCode==Activity.RESULT_OK) {	                 
-			 System.out.println("Discovery is now enabled");
-		     mScanning = true;
-		     m.startManualScan();
-			  
+	private boolean isBtSupported() {
+
+		BluetoothAdapter mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+		/*
+		 * check if  bluetooth is supported on this device. 
+		 */
+
+		if (mBtAdapter == null) {
+			// Device does not support Bluetooth
+			System.out.println("BT is not supported on this device");
+			return false;
+		}
+
+		return true;		
 	}
 
 
+	private boolean isBtDiscoverable() {
+
+		BluetoothAdapter mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+		if(mBtAdapter.getScanMode() == BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+
+			return true;
+
+		}
+		return false;
+
 	}
+
+
 }
 
 

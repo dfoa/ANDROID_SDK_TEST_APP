@@ -3,17 +3,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.ad.intromitestapplication"
     android:screenOrientation="portrait"
-    android:versionCode="15"
-    android:versionName="2" >
+    android:versionCode="16"
+    android:versionName="3" >
     
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/> 
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.INTERNET" />
+      <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
 
     <uses-sdk
-        android:minSdkVersion="14"
+        android:minSdkVersion="18"
         android:targetSdkVersion="21" />
 
     
@@ -39,11 +40,8 @@
        
     
 
-	        <service
-	            android:name="com.ad.intromi.DiscoveryService"
-	            android:enabled="true" >
-	        </service>
-	         <service android:name="com.ad.IntroMi.BluetoothLeService" />
+	        <service android:name="com.ad.intromi.DiscoveryService"/>	  
+	         <service android:name="com.ad.intromi.BluetoothLeService" />
 
      
        
